@@ -6,11 +6,11 @@ export default defineNuxtConfig({
 
     app: {
         head: {
-            title: 'Tabela de Controle - Resolução de Questões do ENEM',
+            title: 'Equilibra Que Dá!',
             meta: [
                 { charset: 'utf-8' },
                 { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-                { name: 'description', content: 'Rastreador de questões do ENEM - Acompanhe seu progresso nos estudos' },
+                { name: 'description', content: 'Equilibra Que Dá! - Acompanhe seu progresso nos estudos para o ENEM' },
             ],
         },
     },

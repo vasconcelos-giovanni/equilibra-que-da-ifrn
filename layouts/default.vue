@@ -7,7 +7,7 @@
 
       <v-toolbar-title class="font-weight-bold">
         <v-icon class="mr-2">mdi-school</v-icon>
-        <span v-if="mdAndUp">Tabela de Controle - Resolução de Questões do ENEM</span>
+        <span v-if="mdAndUp">Equilibra Que Dá!</span>
         <span v-else>Radar do ENEM</span>
       </v-toolbar-title>
     </v-app-bar>
@@ -63,6 +63,42 @@
       <v-container :class="{ 'px-8': mdAndUp, 'px-4': smAndDown }" class="py-6">
         <slot />
       </v-container>
+
+      <v-footer border class="py-4 mt-10 flex-grow-0">
+        <div :class="mdAndUp ? 'd-flex align-center w-100 px-8' : 'text-center w-100'">
+          
+          <div class="d-flex align-center" :class="{ 'justify-center': !mdAndUp }">
+            <v-img
+              src="/assets/images/ifrn-logo.png"
+              alt="Logo IFRN"
+              width="45"
+              height="45"
+              class="mr-3"
+              contain
+            />
+            <div class="text-left">
+              <div class="text-subtitle-2 font-weight-bold" style="line-height: 1.2;">
+                Equilibra Que Dá!
+              </div>
+              <div class="text-caption" style="line-height: 1.2;">
+                IFRN - Campus Nova Cruz
+              </div>
+            </div>
+          </div>
+
+          <v-spacer v-if="mdAndUp" />
+          <v-divider v-else class="my-3" />
+
+          <div :class="{ 'text-right': mdAndUp }">
+            <div class="text-caption">
+              <strong>Idealização:</strong> Prof. Me. Igor Gacheiro da Silva
+            </div>
+            <div class="text-caption">
+              <strong>Desenvolvimento:</strong> Giovanni Vasconcelos de Medeiros
+            </div>
+          </div>
+        </div>
+      </v-footer>
     </v-main>
 
     <!-- Diálogo de configuração de meta -->
