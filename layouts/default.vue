@@ -7,8 +7,7 @@
 
       <v-toolbar-title class="font-weight-bold">
         <v-icon class="mr-2">mdi-school</v-icon>
-        <span v-if="mdAndUp">Equilibra Que Dá!</span>
-        <span v-else>Radar do ENEM</span>
+        <span>Equilibra Que Dá!</span>
       </v-toolbar-title>
     </v-app-bar>
 
