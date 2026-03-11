@@ -16,6 +16,7 @@
 - 🌐 **100% client-side** — nenhuma requisição para backend externo.
 - 🎨 **Tema escuro customizado** (`enemDark`) integrado ao Vuetify 3.
 - ✅ **Validação de formulários** com Zod — regras de negócio garantidas em tempo de compilação e em runtime.
+- 💾 **Portabilidade Total** — Sistema de Backup e Restauração via arquivos `.json` com validação de integridade.
 
 ---
 
@@ -110,33 +111,31 @@ export const SessionSchema = z.object({
     totalQuestions:      z.number().int().min(1),
     wrongQuestions:      z.number().int().min(0),
     correctQuestions:    z.number().int().min(0),
-    primaryErrorReason:  MotivoErro,        // enum validado
-}).refine(
-    data => data.wrongQuestions <= data.totalQuestions,
-    { message: 'Questões erradas não pode ser maior que o total' },
-)
-```
-
-### Estado Global (Pinia + persistedstate)
-
-O [`stores/study.ts`](stores/study.ts) é a única store da aplicação. Ela é configurada com o plugin `pinia-plugin-persistedstate`, que serializa e desserializa automaticamente o estado em `localStorage` sob a chave `enem-tracker-data`.
-
-```ts
-export const useStudyStore = defineStore('study', () => {
-    const sessions = ref<Session[]>([])
-    const goal     = ref<Goal>({ dailyTarget: 30, weeklyTarget: 150 })
-    // ...
-}, {
-    persist: {
-        storage: localStorage,
-        key: 'enem-tracker-data',
-    },
+    primaryErrorReason:  MotivoErro.nullable(), // Suporta Erro Zero
+}).superRefine((data, ctx) => {
+    // Lógica 'Erro Zero': motivo deve ser null se não houver falhas
+    if (data.wrongQuestions > 0 && data.primaryErrorReason === null) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Se houver erros, selecione o motivo.', path: ['primaryErrorReason'] })
+    }
+    if (data.wrongQuestions === 0 && data.primaryErrorReason !== null) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Sessões sem erros não devem ter motivo.', path: ['primaryErrorReason'] })
+    }
 })
 ```
 
-### Composable de Estatísticas
+### Portabilidade e Backup
 
-O [`composables/useStatistics.ts`](composables/useStatistics.ts) encapsula toda a lógica de cálculo e a preparação dos datasets para o Chart.js. Utiliza `computed` reativo para que os gráficos e KPIs sejam atualizados automaticamente sempre que a store muda.
+Como o estado reside exclusivamente no navegador do aluno, a aplicação implementa um sistema de **Backup e Restauração** via arquivo JSON.
+
+- **Exportação (`exportData`):** Gera um arquivo `.json` contendo as sessões e metas, incluindo um timestamp `exportedAt`.
+- **Importação (`importData`):** Lê o arquivo e utiliza o `LocalStorageSchema.safeParse` para validar a integridade dos dados antes da persistência.
+- **Segurança de Dados:** O `superRefine` garante que dados importados manualmente respeitem as regras de negócio (ex: total de erros vs total de questões).
+
+### Analytics (Estatísticas)
+
+O composable [`composables/useStatistics.ts`](composables/useStatistics.ts) processa os dados para visualização. Uma mudança crítica foi implementada:
+
+- **Estatísticas de Erro:** Gráficos como "Por que Errei?" agora ignoram sessões onde `wrongQuestions === 0` ou `primaryErrorReason === null`. Isso evita poluir os indicadores pedagógicos com dados irrelevantes e foca nos pontos de melhoria do estudante.
 
 ---
 
@@ -243,6 +242,7 @@ O preset `netlify` do Nitro converte Server Routes em **Netlify Functions**. Par
 | `/` | `pages/index.vue` | Dashboard com KPIs, gráficos e metas |
 | `/registrar` | `pages/registrar.vue` | Formulário de registro/edição de sessão |
 | `/historico` | `pages/historico.vue` | Listagem com filtro e exclusão de registros |
+| `/ajuda-backup` | `pages/ajuda-backup.vue` | Guia de exportação e importação de dados |
 
 ---
 
@@ -487,7 +487,8 @@ equilibra-que-da-ifrn/
 ├── pages/
 │   ├── index.vue               # Dashboard de desempenho
 │   ├── registrar.vue           # Registro/edição de sessão de estudo
-│   └── historico.vue           # Histórico de registros
+│   ├── historico.vue           # Histórico de registros
+│   └── ajuda-backup.vue        # Guia de backup e restauração
 │
 ├── layouts/
 │   └── default.vue             # Layout principal (AppBar, Navigation Drawer, Footer)
