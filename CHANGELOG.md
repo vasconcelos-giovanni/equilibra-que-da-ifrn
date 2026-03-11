@@ -16,6 +16,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - **Lógica de Erro Zero:** Refatoração do `SessionSchema` com `.superRefine()` para garantir a consistência pedagógica entre questões erradas e motivos de erro.
 - **Ajuda de Backup:** Nova página `/ajuda-backup` com guia detalhado e FAQ sobre a persistência de dados.
 - **Automação de Release:** Novo script `scripts/release.sh` para gestão de versões SemVer e tags Git.
+- Transformar aplicação em **PWA**.
 
 ### Changed
 
