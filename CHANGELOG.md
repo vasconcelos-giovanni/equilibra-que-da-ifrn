@@ -13,6 +13,9 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 - **Duplicação de Sessões:** Nova funcionalidade que permite copiar uma sessão existente (mantendo a matéria e questões, mas resetando a data para hoje) para agilizar registros recorrentes.
 - **Edição via Modais:** O histórico agora permite editar registros diretamente em um `v-dialog`, eliminando a troca de página e melhorando a fluidez da UX.
+- **Tooltips** para os **botões de ação** do histórico, aumentando a acessibilidade e clareza das funcionalidades.
+- Cor vermelha para o **botão de limpar dados da sessão** de estudo, melhorando a visibilidade e o feedback visual.
+- **Outlined para o botão de cancelar** edição, reforçando a hierarquia visual.
 
 ### Refactor
 

@@ -109,6 +109,7 @@
             <v-btn
               variant="outlined"
               size="large"
+              color="error"
               :prepend-icon="mdiEraser"
               @click="limparForm"
             >
@@ -117,7 +118,7 @@
 
             <v-btn
               v-if="modoEdicao || modoDuplicacao"
-              variant="text"
+              variant="outlined"
               size="large"
               :prepend-icon="mdiClose"
               @click="emit('cancel')"

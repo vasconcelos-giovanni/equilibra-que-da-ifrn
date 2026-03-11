@@ -107,28 +107,45 @@
 
         <!-- Coluna Ações -->
         <template #item.actions="{ item }">
-          <div class="ga-1">
+          <div class="ga-1 justify-start">
             <v-btn
               :icon="mdiPencilOutline"
               size="small"
               variant="text"
               color="info"
               @click="editarSessao(item)"
-            />
+            >
+              <v-icon :icon="mdiPencilOutline" />
+              <v-tooltip activator="parent" location="top">
+                <span class="text-white">Editar sessão</span>
+              </v-tooltip>
+            </v-btn>
+
             <v-btn
               :icon="mdiContentDuplicate"
               size="small"
               variant="text"
               color="secondary"
               @click="duplicarSessao(item)"
-            />
+            >
+              <v-icon :icon="mdiContentDuplicate" />
+              <v-tooltip activator="parent" location="top">
+                <span class="text-white">Duplicar sessão</span>
+              </v-tooltip>
+            </v-btn>
+
             <v-btn
               :icon="mdiDeleteOutline"
               size="small"
               variant="text"
               color="error"
               @click="confirmarExclusao(item)"
-            />
+            >
+              <v-icon :icon="mdiDeleteOutline" />
+              <v-tooltip activator="parent" location="top">
+                <span class="text-white">Excluir sessão</span>
+              </v-tooltip>
+            </v-btn>
           </div>
         </template>
 
@@ -138,7 +155,7 @@
           <div class="d-flex flex-wrap align-center justify-space-between pa-4 ga-4">
             <div class="d-flex flex-wrap ga-4">
               <span class="text-body-2 text-medium-emphasis">
-                <strong>{{ sessoesFiltradas.length }}</strong> sessão(ões)
+                <strong>{{ sessoesFiltradas.length }}</strong> sessões
               </span>
               <span class="text-body-2 text-medium-emphasis">
                 <strong>{{ totalFiltrado }}</strong> questões
