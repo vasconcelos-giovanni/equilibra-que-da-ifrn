@@ -6,15 +6,24 @@
       </template>
 
       <v-toolbar-title class="font-weight-bold">
-        <v-icon class="mr-2">mdi-school</v-icon>
+        <v-icon class="mr-2" :icon="mdiSchool" />
         <span>Equilibra Que Dá!</span>
       </v-toolbar-title>
+
+      <template #append>
+        <v-btn
+          :icon="mdiHelpCircleOutline"
+          variant="text"
+          title="Ajuda sobre backup"
+          to="/ajuda-backup"
+        />
+      </template>
     </v-app-bar>
 
     <v-navigation-drawer
       :temporary="smAndDown"
       :permanent="mdAndUp"
-      :model-value="drawer || mdAndUp"
+      v-model="drawer"
       :expand-on-hover="mdAndUp"
       :rail="!drawer && mdAndUp"
       color="surface"
@@ -24,9 +33,8 @@
     >
       <v-list density="compact" class="mt-2">
         <v-list-item
-          prepend-icon="mdi-school"
-          title="Radar do ENEM"
-          subtitle="Controle de Questões"
+          :prepend-icon="mdiSchool"
+          title="Equilibra Que Dá!"
           class="mb-2"
         />
       </v-list>
@@ -49,10 +57,10 @@
       <template #append>
         <v-list density="compact" nav class="mb-2">
           <v-list-item
-            prepend-icon="mdi-cog-outline"
-            title="Configurar Meta"
+            :prepend-icon="mdiCogOutline"
+            title="Configurações"
             rounded="lg"
-            @click="dialogMeta = true"
+            @click="dialogConfiguracoes = true"
           />
         </v-list>
       </template>
@@ -65,7 +73,6 @@
 
       <v-footer border class="py-4 mt-10 flex-grow-0">
         <div :class="mdAndUp ? 'd-flex align-center w-100 px-8' : 'text-center w-100'">
-          
           <div class="d-flex align-center" :class="{ 'justify-center': !mdAndUp }">
             <v-img
               src="/assets/images/ifrn-logo.png"
@@ -100,37 +107,115 @@
       </v-footer>
     </v-main>
 
-    <!-- Diálogo de configuração de meta -->
-    <v-dialog v-model="dialogMeta" max-width="400" persistent>
+    <v-dialog v-model="dialogConfiguracoes" max-width="440" persistent>
       <v-card>
-        <v-card-title class="d-flex align-center">
-          <v-icon class="mr-2" color="primary">mdi-target</v-icon>
-          Configurar Metas
+        <v-card-title class="d-flex align-center pt-5 px-6">
+          <v-icon class="mr-2" color="primary" :icon="mdiCogOutline" />
+          Configurações
         </v-card-title>
 
-        <v-card-text>
+        <v-card-text class="px-6">
+          <div class="text-subtitle-2 text-medium-emphasis mb-3">
+            <v-icon size="16" class="mr-1" :icon="mdiTarget" />
+            Metas de Estudo
+          </div>
+
           <v-text-field
             v-model.number="metaForm.dailyTarget"
             label="Meta diária (questões)"
             type="number"
-            prepend-inner-icon="mdi-calendar-today"
-            :min="1"
-            class="mb-4"
+            :prepend-inner-icon="mdiCalendarToday"
+            class="mb-3"
           />
 
           <v-text-field
             v-model.number="metaForm.weeklyTarget"
             label="Meta semanal (questões)"
             type="number"
-            prepend-inner-icon="mdi-calendar-week"
-            :min="1"
+            :prepend-inner-icon="mdiCalendarWeek"
           />
+
+          <v-divider class="my-4" />
+
+          <div class="text-subtitle-2 text-medium-emphasis mb-3">
+            <v-icon size="16" class="mr-1" :icon="mdiDatabaseOutline" />
+            Backup de Dados
+          </div>
+
+          <div class="text-body-2 text-medium-emphasis mb-4">
+            Seus dados ficam apenas neste navegador. Use o backup para não perdê-los.
+            <NuxtLink to="/ajuda-backup" class="ml-1" @click="dialogConfiguracoes = false">
+              Saiba mais
+            </NuxtLink>
+          </div>
+
+          <v-row dense>
+            <v-col cols="6">
+              <v-btn
+                block
+                variant="elevated"
+                color="primary"
+                :prepend-icon="mdiExportVariant"
+                @click="baixarDados"
+              >
+                Baixar dados
+              </v-btn>
+            </v-col>
+            <v-col cols="6">
+              <v-btn
+                block
+                variant="elevated"
+                color="secondary"
+                :prepend-icon="mdiImport"
+                @click="selecionarArquivo"
+              >
+                Restaurar dados
+              </v-btn>
+              <input
+                ref="fileInputRef"
+                type="file"
+                accept=".json"
+                class="d-none"
+                @change="onFileSelecionado"
+              >
+            </v-col>
+          </v-row>
         </v-card-text>
 
-        <v-card-actions>
+        <v-card-actions class="px-6 pb-4">
           <v-spacer />
-          <v-btn variant="text" @click="dialogMeta = false">Cancelar</v-btn>
+          <v-btn variant="text" @click="dialogConfiguracoes = false">Cancelar</v-btn>
           <v-btn color="primary" variant="elevated" @click="salvarMeta">Salvar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="dialogConfirmacaoRestore" max-width="460" persistent>
+      <v-card>
+        <v-card-title class="d-flex align-center pt-5 px-6 text-warning">
+          <v-icon class="mr-2" :icon="mdiAlertOutline" />
+          Confirmar Restauração
+        </v-card-title>
+
+        <v-card-text class="px-6">
+          <v-alert type="warning" variant="tonal" class="mb-4">
+            Isso substituirá <strong>todos</strong> os seus dados atuais por este arquivo.
+          </v-alert>
+
+          <div class="text-body-2 mb-1">
+            <strong>Atividade atual:</strong> {{ ultimaAtividadeAtual }}
+          </div>
+          <div class="text-body-2">
+            <strong>Data do backup:</strong> {{ dataDoBackup }}
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="px-6 pb-4">
+          <v-spacer />
+          <v-btn variant="text" @click="cancelarRestore">Cancelar</v-btn>
+          <v-btn color="warning" variant="elevated" @click="confirmarRestore">
+            Sim, restaurar
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -139,10 +224,20 @@
 
 <script setup lang="ts">
 import { useDisplay } from 'vuetify'
+import {
+  mdiSchool, mdiViewDashboard, mdiPlusCircleOutline, mdiHistory,
+  mdiCogOutline, mdiHelpCircleOutline, mdiTarget, mdiCalendarToday,
+  mdiCalendarWeek, mdiDatabaseOutline, mdiExportVariant, mdiImport,
+  mdiAlertOutline
+} from '@mdi/js'
 
 const { mdAndUp, smAndDown } = useDisplay()
 const drawer = ref(false)
-const dialogMeta = ref(false)
+const dialogConfiguracoes = ref(false)
+const dialogConfirmacaoRestore = ref(false)
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const pendingJsonString = ref('')
+const dataDoBackup = ref('')
 
 const store = useStudyStore()
 
@@ -152,16 +247,60 @@ const metaForm = ref({
 })
 
 const menuItems = [
-  { title: 'Painel', icon: 'mdi-view-dashboard', path: '/' },
-  { title: 'Registrar', icon: 'mdi-plus-circle-outline', path: '/registrar' },
-  { title: 'Histórico', icon: 'mdi-history', path: '/historico' },
+  { title: 'Painel', icon: mdiViewDashboard, path: '/' },
+  { title: 'Registrar', icon: mdiPlusCircleOutline, path: '/registrar' },
+  { title: 'Histórico', icon: mdiHistory, path: '/historico' },
 ]
 
+const ultimaAtividadeAtual = computed(() => {
+  if (store.sessions.length === 0) return 'Nenhuma atividade'
+  const ultima = [...store.sessions].sort((a, b) => b.date.localeCompare(a.date))[0]
+  return new Date(ultima.date + 'T12:00:00').toLocaleDateString('pt-BR')
+})
+
 function salvarMeta() {
-  store.updateGoal({
-    dailyTarget: metaForm.value.dailyTarget || 30,
-    weeklyTarget: metaForm.value.weeklyTarget || 150,
-  })
-  dialogMeta.value = false
+  store.updateGoal({ ...metaForm.value })
+  dialogConfiguracoes.value = false
+}
+
+function baixarDados() {
+  store.exportData()
+}
+
+function selecionarArquivo() {
+  fileInputRef.value?.click()
+}
+
+function onFileSelecionado(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const text = e.target?.result as string
+    pendingJsonString.value = text
+    try {
+      const parsed = JSON.parse(text)
+      dataDoBackup.value = parsed.exportAt 
+        ? new Date(parsed.exportAt).toLocaleDateString('pt-BR') 
+        : 'Desconhecida'
+    } catch {
+      dataDoBackup.value = 'Arquivo inválido'
+    }
+    dialogConfiguracoes.value = false
+    dialogConfirmacaoRestore.value = true
+  }
+  reader.readAsText(file)
+  input.value = ''
+}
+
+function cancelarRestore() {
+  dialogConfirmacaoRestore.value = false
+  pendingJsonString.value = ''
+}
+
+function confirmarRestore() {
+  store.importData(pendingJsonString.value)
 }
 </script>

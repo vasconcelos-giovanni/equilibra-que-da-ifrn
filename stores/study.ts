@@ -2,6 +2,16 @@ import { defineStore } from 'pinia'
 import type { Session, SessionForm, Goal } from '~/types'
 import { LocalStorageSchema } from '~/types'
 
+export interface BackupFile {
+    exportedAt: string
+    sessions: Session[]
+    goal: Goal
+}
+
+export type ImportResult =
+    | { ok: true; exportedAt: string; sessionCount: number }
+    | { ok: false; error: string }
+
 export const useStudyStore = defineStore('study', () => {
     const sessions = ref<Session[]>([])
     const goal = ref<Goal>({ dailyTarget: 30, weeklyTarget: 150 })
@@ -51,6 +61,51 @@ export const useStudyStore = defineStore('study', () => {
         sessions.value = []
     }
 
+    function exportData(): void {
+        const payload: BackupFile = {
+            exportedAt: new Date().toISOString(),
+            sessions: sessions.value,
+            goal: goal.value,
+        }
+
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const date = new Date().toISOString().split('T')[0]
+
+        const anchor = document.createElement('a')
+        anchor.href = url
+        anchor.download = `backup-equilibra-${date}.json`
+        anchor.click()
+
+        URL.revokeObjectURL(url)
+    }
+
+    function importData(jsonString: string): ImportResult {
+        let raw: unknown
+        try {
+            raw = JSON.parse(jsonString)
+        }
+        catch {
+            return { ok: false, error: 'Arquivo de backup inválido ou corrompido.' }
+        }
+
+        const result = LocalStorageSchema.safeParse(raw)
+        if (!result.success) {
+            return { ok: false, error: 'Arquivo de backup inválido ou corrompido.' }
+        }
+
+        sessions.value = result.data.sessions
+        goal.value = result.data.goal
+
+        const exportedAt = (raw as Partial<BackupFile>).exportedAt ?? ''
+        const sessionCount = result.data.sessions.length
+
+        // Força reload para garantir reatividade do Chart.js e dos composables
+        window.location.reload()
+
+        return { ok: true, exportedAt, sessionCount }
+    }
+
     return {
         sessions,
         goal,
@@ -60,6 +115,8 @@ export const useStudyStore = defineStore('study', () => {
         getSessionById,
         updateGoal,
         clearAllSessions,
+        exportData,
+        importData,
     }
 }, {
     persist: {
