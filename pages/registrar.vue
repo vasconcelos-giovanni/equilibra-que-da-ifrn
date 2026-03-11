@@ -219,7 +219,7 @@
       v-model="snackbar"
       color="success"
       timeout="3000"
-      location="bottom end"
+      location="bottom center"
     >
       <v-icon class="mr-2" :icon="mdiCheckCircle" />
       {{ snackbarMsg }}

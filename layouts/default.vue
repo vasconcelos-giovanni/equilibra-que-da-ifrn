@@ -66,12 +66,12 @@
       </v-list>
     </v-navigation-drawer>
 
-    <v-main>
-      <v-container :class="{ 'px-8': mdAndUp, 'px-4': smAndDown }" class="py-6">
+    <v-main class="d-flex flex-column" style="min-height: 100vh;">
+      <v-container :class="{ 'px-8': mdAndUp, 'px-4': smAndDown }" class="py-6 flex-grow-1">
         <slot />
       </v-container>
 
-      <v-footer border class="py-4 mt-10 flex-grow-0">
+      <v-footer border class="py-4 mt-auto flex-grow-0">
         <div :class="mdAndUp ? 'd-flex align-center w-100 px-8' : 'text-center w-100'">
           <div class="d-flex align-center" :class="{ 'justify-center': !mdAndUp }">
             <v-img
@@ -87,7 +87,7 @@
                 Equilibra Que Dá!
               </div>
               <div class="text-caption" style="line-height: 1.2;">
-                IFRN - Campus Nova Cruz
+                Instituto Federal de Educação, Ciência e Tecnologia do Estado do Rio Grande do Norte - Campus Nova Cruz
               </div>
             </div>
           </div>
@@ -150,7 +150,7 @@
           </div>
 
           <v-row dense>
-            <v-col cols="6">
+            <v-col md="6" cols="12">
               <v-btn
                 block
                 variant="elevated"
@@ -161,7 +161,7 @@
                 Baixar dados
               </v-btn>
             </v-col>
-            <v-col cols="6">
+            <v-col md="6" cols="12">
               <v-btn
                 block
                 variant="elevated"
@@ -190,8 +190,8 @@
 
           <v-btn
             block
-            variant="tonal"
-            color="primary"
+            variant="outlined"
+            color="light"
             :prepend-icon="mdiInformationOutline"
             @click="reiniciarTour"
           >
