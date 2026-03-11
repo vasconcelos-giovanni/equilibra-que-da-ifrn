@@ -27,6 +27,7 @@
 | Node.js | `^24.x` (recomendado via `.tool-versions`) |
 | npm | `^10.x` |
 | jq | `^1.6` (necessário para o `release.sh`) |
+| driver.js | `^1.4.0` (tour de onboarding) |
 
 > O arquivo [`.tool-versions`](.tool-versions) permite gerenciar a versão do Node.js com [asdf](https://asdf-vm.com/) ou [mise](https://mise.jdx.dev/).
 
@@ -136,6 +137,32 @@ Como o estado reside exclusivamente no navegador do aluno, a aplicação impleme
 O composable [`composables/useStatistics.ts`](composables/useStatistics.ts) processa os dados para visualização. Uma mudança crítica foi implementada:
 
 - **Estatísticas de Erro:** Gráficos como "Por que Errei?" agora ignoram sessões onde `wrongQuestions === 0` ou `primaryErrorReason === null`. Isso evita poluir os indicadores pedagógicos com dados irrelevantes e foca nos pontos de melhoria do estudante.
+
+### Onboarding e Retenção
+
+O composable [`composables/useOnboarding.ts`](composables/useOnboarding.ts) implementa um tour guiado de boas-vindas utilizando a biblioteca [driver.js](https://driverjs.com/).
+
+**Funcionamento:**
+
+- Na primeira visita, o tour é iniciado automaticamente após 600 ms (aguarda a renderização completa da UI).
+- O controle de exibição é feito pela chave **`equilibra-onboarding-completo`** no `localStorage`. Se a chave não existir, o tour é iniciado; ao concluir ou pular, a chave é gravada com o valor `'true'`.
+- O tour cobre quatro passos: apresentação do aplicativo, aviso de privacidade dos dados (popover centralizado, sem elemento de destaque), item **Registrar** (`#nav-registrar`) e item **Configurações** (`#nav-configuracoes`) — com ênfase na funcionalidade de backup.
+
+**Re-execução manual:**
+
+O usuário pode rever o tour a qualquer momento pelo botão **"Ver tutorial novamente"** no modal de Configurações, que limpa a chave do `localStorage` e reinicia o fluxo:
+
+```ts
+// layouts/default.vue
+function reiniciarTour() {
+  dialogConfiguracoes.value = false
+  nextTick(() => iniciarTour({ openDrawer: () => { drawer.value = true } }))
+}
+```
+
+**Personalização visual:**
+
+O tour usa a classe CSS customizada `equilibra-popover` (definida em `app.vue`) para aplicar as cores do tema `enemDark` — background `#434343`, texto `#f3f3f3` e botões com a cor primary `#356854`.
 
 ---
 

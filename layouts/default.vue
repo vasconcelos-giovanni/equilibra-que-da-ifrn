@@ -45,6 +45,7 @@
         <v-list-item
           v-for="item in menuItems"
           :key="item.path"
+          :id="item.id"
           :prepend-icon="item.icon"
           :title="item.title"
           :to="item.path"
@@ -56,6 +57,7 @@
 
       <v-list density="compact" nav class="mb-2">
         <v-list-item
+          id="nav-configuracoes"
           :prepend-icon="mdiCogOutline"
           title="Configurações"
           rounded="lg"
@@ -178,6 +180,23 @@
               >
             </v-col>
           </v-row>
+
+          <v-divider class="my-4" />
+
+          <div class="text-subtitle-2 text-medium-emphasis mb-3">
+            <v-icon size="16" class="mr-1" :icon="mdiSchoolOutline" />
+            Tutorial
+          </div>
+
+          <v-btn
+            block
+            variant="tonal"
+            color="primary"
+            :prepend-icon="mdiInformationOutline"
+            @click="reiniciarTour"
+          >
+            Ver tutorial novamente
+          </v-btn>
         </v-card-text>
 
         <v-card-actions class="px-6 pb-4">
@@ -226,12 +245,20 @@ import {
   mdiSchool, mdiViewDashboard, mdiPlusCircleOutline, mdiHistory,
   mdiCogOutline, mdiHelpCircleOutline, mdiTarget, mdiCalendarToday,
   mdiCalendarWeek, mdiDatabaseOutline, mdiExportVariant, mdiImport,
-  mdiAlertOutline
+  mdiAlertOutline, mdiInformationOutline, mdiSchoolOutline
 } from '@mdi/js'
 
 const { mdAndUp, smAndDown } = useDisplay()
 const drawer = ref(false)
 const dialogConfiguracoes = ref(false)
+
+const { iniciarTour, verificarOnboarding } = useOnboarding()
+verificarOnboarding({ openDrawer: () => { drawer.value = true } })
+
+function reiniciarTour() {
+  dialogConfiguracoes.value = false
+  nextTick(() => iniciarTour({ openDrawer: () => { drawer.value = true } }))
+}
 const dialogConfirmacaoRestore = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const pendingJsonString = ref('')
@@ -245,9 +272,9 @@ const metaForm = ref({
 })
 
 const menuItems = [
-  { title: 'Painel', icon: mdiViewDashboard, path: '/' },
-  { title: 'Registrar', icon: mdiPlusCircleOutline, path: '/registrar' },
-  { title: 'Histórico', icon: mdiHistory, path: '/historico' },
+  { title: 'Painel', icon: mdiViewDashboard, path: '/', id: undefined },
+  { title: 'Registrar', icon: mdiPlusCircleOutline, path: '/registrar', id: 'nav-registrar' },
+  { title: 'Histórico', icon: mdiHistory, path: '/historico', id: undefined },
 ]
 
 const ultimaAtividadeAtual = computed(() => {
