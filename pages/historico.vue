@@ -116,6 +116,13 @@
               @click="editarSessao(item)"
             />
             <v-btn
+              :icon="mdiContentDuplicate"
+              size="small"
+              variant="text"
+              color="secondary"
+              @click="duplicarSessao(item)"
+            />
+            <v-btn
               :icon="mdiDeleteOutline"
               size="small"
               variant="text"
@@ -208,6 +215,29 @@
       </v-card>
     </v-dialog>
 
+    <!-- Diálogo de edição / duplicação -->  
+    <v-dialog v-model="dialogFormulario" :fullscreen="smAndDown" max-width="960" scrollable>
+      <v-card>
+        <v-card-title class="d-flex align-center pa-4">
+          <v-icon
+            class="mr-2"
+            :icon="duplicandoId ? mdiContentDuplicate : mdiPencilOutline"
+            :color="duplicandoId ? 'secondary' : 'info'"
+          />
+          {{ duplicandoId ? 'Duplicar Sessão' : 'Editar Sessão' }}
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pa-6">
+          <SessionForm
+            :edit-id="editandoId ?? undefined"
+            :duplicate-id="duplicandoId ?? undefined"
+            @success="onFormSuccess"
+            @cancel="fecharFormulario"
+          />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
     <!-- Snackbar -->
     <v-snackbar v-model="snackbar" :color="snackbarColor" timeout="3000" location="bottom center">
       <v-icon class="mr-2" :icon="snackbarIcon" />
@@ -224,6 +254,7 @@ import {
   mdiCalendarEnd,
   mdiCalendar,
   mdiPencilOutline,
+  mdiContentDuplicate,
   mdiDeleteOutline,
   mdiDeleteSweep,
   mdiAlertCircle,
@@ -246,7 +277,6 @@ import { useDisplay } from 'vuetify'
 const { smAndDown } = useDisplay()
 
 const store = useStudyStore()
-const router = useRouter()
 
 const materias = MATERIAS
 
@@ -256,6 +286,9 @@ const filtroDataInicio = ref<string | null>(null)
 const filtroDataFim = ref<string | null>(null)
 
 // Diálogos
+const dialogFormulario = ref(false)
+const editandoId = ref<string | null>(null)
+const duplicandoId = ref<string | null>(null)
 const dialogExcluir = ref(false)
 const dialogLimpar = ref(false)
 const sessaoParaExcluir = ref<Session | null>(null)
@@ -350,7 +383,26 @@ function iconeMotivo(motivo: MotivoErro | null): string {
 }
 
 function editarSessao(sessao: Session) {
-  router.push({ path: '/registrar', query: { editar: sessao.id } })
+  duplicandoId.value = null
+  editandoId.value = sessao.id
+  dialogFormulario.value = true
+}
+
+function duplicarSessao(sessao: Session) {
+  editandoId.value = null
+  duplicandoId.value = sessao.id
+  dialogFormulario.value = true
+}
+
+function fecharFormulario() {
+  dialogFormulario.value = false
+  editandoId.value = null
+  duplicandoId.value = null
+}
+
+function onFormSuccess(message: string) {
+  fecharFormulario()
+  mostrarSnackbar(message, 'success', mdiCheckCircle)
 }
 
 function confirmarExclusao(sessao: Session) {
