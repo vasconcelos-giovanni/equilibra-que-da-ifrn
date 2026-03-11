@@ -25,6 +25,7 @@
 |---|---|
 | Node.js | `^24.x` (recomendado via `.tool-versions`) |
 | npm | `^10.x` |
+| jq | `^1.6` (necessário para o `release.sh`) |
 
 > O arquivo [`.tool-versions`](.tool-versions) permite gerenciar a versão do Node.js com [asdf](https://asdf-vm.com/) ou [mise](https://mise.jdx.dev/).
 
@@ -245,6 +246,90 @@ O preset `netlify` do Nitro converte Server Routes em **Netlify Functions**. Par
 
 ---
 
+## ⚡ Otimizações de Performance
+
+### Estratégia de Build: Static Site Generation (SSG)
+
+O Nitro está configurado com `preset: 'static'`. O comando `npm run generate` produz arquivos 100% estáticos em `.output/public/`, que o Vercel serve diretamente pelo **Edge Network (CDN)** — sem disparar nenhuma Serverless Function. Com 150 usuários/mês, a aplicação permanece confortavelmente na camada gratuita Hobby.
+
+```
+Usuário → Vercel Edge (CDN) → .output/public/
+           ↑
+        Cache-Control: max-age=31536000, immutable
+        (JS/CSS com hash de conteúdo nunca expiram)
+```
+
+### Cache Agressivo (`vercel.json`)
+
+O arquivo [`vercel.json`](vercel.json) configura headers HTTP por padrão de rota:
+
+| Padrão | Cache-Control | Estratégia |
+|---|---|---|
+| `/_nuxt/**`, `/**/*.js`, `/**/*.css` | `immutable, 1 ano` | Hash de conteúdo muda a cada deploy |
+| `/assets/**`, `/**/*.webp` | `immutable, 1 ano` | Assets com hashes |
+| `/**/*.html` | `must-revalidate` | HTML sempre revalidado para receber o novo bundle |
+
+### Tree-Shaking de Ícones (`@mdi/js`)
+
+A biblioteca `@mdi/font` carregava um arquivo CSS de ~300 KB com todos os ícones MDI. Ela foi substituída por `@mdi/js`, que exporta cada ícone como uma constante SVG individual.
+
+**Antes:** `@mdi/font` → ~300 KB (CSS + woff2 com todos os ícones)
+**Depois:** `@mdi/js` → apenas os ícones importados entram no bundle
+
+Como usar ícones em componentes Vue:
+
+```vue
+<script setup lang="ts">
+import { mdiCheckCircleOutline, mdiCloseCircleOutline } from '@mdi/js'
+</script>
+
+<template>
+  <!-- Ícone inline via SVG path -->
+  <v-icon :icon="mdiCheckCircleOutline" color="success" />
+  <v-icon :icon="mdiCloseCircleOutline" color="error" />
+</template>
+```
+
+> Todos os ícones disponíveis estão listados em [@mdi/js no npm](https://www.npmjs.com/package/@mdi/js). O nome segue o padrão camelCase: `mdi-check-circle-outline` → `mdiCheckCircleOutline`.
+
+### Validação do `localStorage` (Anti-CLS)
+
+O `pinia-plugin-persistedstate` hidrata a store a partir do `localStorage` no primeiro carregamento. Dados corrompidos ou de uma versão antiga podem causar erros em runtime e re-renders desnecessários (CLS — Cumulative Layout Shift).
+
+O serializer customizado em [`stores/study.ts`](stores/study.ts) envolve a desserialização com `LocalStorageSchema.safeParse()`. Se os dados forem inválidos, o estado padrão é usado silenciosamente:
+
+```ts
+serializer: {
+    serialize: JSON.stringify,
+    deserialize: (raw) => {
+        try {
+            const result = LocalStorageSchema.safeParse(JSON.parse(raw))
+            if (result.success) return result.data
+            return LocalStorageSchema.parse({})  // estado padrão seguro
+        } catch {
+            return LocalStorageSchema.parse({})
+        }
+    },
+},
+```
+
+O `LocalStorageSchema` está definido em [`types/index.ts`](types/index.ts) e valida toda a estrutura do estado persistido:
+
+```ts
+export const LocalStorageSchema = z.object({
+    sessions: z.array(SessionSchema).default([]),
+    goal: GoalSchema.default({ dailyTarget: 30, weeklyTarget: 150 }),
+})
+```
+
+### Compressão de Assets
+
+O Nitro está configurado com `compressPublicAssets: { brotli: true, gzip: true }`. Todos os arquivos estáticos são pré-comprimidos em formato Brotli e Gzip durante o `npm run generate`.
+
+> **Recomendação:** Converta imagens em `public/assets/images/` para o formato **WebP**. Ferramentas recomendadas: [Squoosh](https://squoosh.app/) ou `npx @squoosh/cli --webp auto public/assets/images/*.png`.
+
+---
+
 ## 🔖 Versionamento e Release
 
 ### Commits Semânticos
@@ -301,6 +386,41 @@ git commit -m "chore(deps): atualiza nuxt para 3.15.0"
 git commit -m "docs: adiciona seção de deploy na Vercel ao README"
 ```
 
+### CI/CD com GitHub Actions
+
+O workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) garante que o Vercel só receba um deploy quando uma tag de release é criada — **nenhum push de commit rotineiro consome Build Minutes**.
+
+```
+git push origin feat/nova-funcionalidade  → ✗  Sem deploy
+git push origin main                      → ✗  Sem deploy
+git push origin v1.2.0                    → ✅  Deploy de Produção
+```
+
+#### Configuração dos Segredos
+
+Nas configurações do repositório (**Settings → Secrets and variables → Actions**), cadastre:
+
+| Secret | Como obter |
+|---|---|
+| `VERCEL_TOKEN` | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
+| `VERCEL_ORG_ID` | Execute `npx vercel link` → leia `.vercel/project.json` |
+| `VERCEL_PROJECT_ID` | Idem acima |
+
+#### Fluxo Completo de Release
+
+```bash
+# 1. Finalize suas features no branch principal
+git checkout main
+
+# 2. Execute o script de release (faz bump, gera CHANGELOG, cria tag)
+./scripts/release.sh minor
+
+# 3. Publique a tag — isso dispara o deploy automaticamente
+git push origin main --follow-tags
+# ou separadamente:
+git push origin v1.2.0
+```
+
 ### Script de Release
 
 O arquivo [`scripts/release.sh`](scripts/release.sh) automatiza todo o processo de release:
@@ -345,16 +465,21 @@ chmod +x scripts/release.sh
 ```
 equilibra-que-da-ifrn/
 ├── app.vue                     # Entrada da aplicação Vue
-├── nuxt.config.ts              # Configuração do Nuxt 3 / Nitro
+├── nuxt.config.ts              # Configuração do Nuxt 3 / Nitro (preset: static)
+├── vercel.json                 # Headers de cache agressivo para o Edge Network
 ├── package.json
 ├── tsconfig.json
 ├── .tool-versions              # Versão do Node.js (asdf/mise)
 │
+├── .github/
+│   └── workflows/
+│       └── deploy.yml          # CI/CD: deploy apenas em tags de release
+│
 ├── types/
-│   └── index.ts                # Enums, schemas Zod e tipos TypeScript
+│   └── index.ts                # Enums, schemas Zod, LocalStorageSchema
 │
 ├── stores/
-│   └── study.ts                # Pinia store — estado global com persistência
+│   └── study.ts                # Pinia store com serializer Zod anti-CLS
 │
 ├── composables/
 │   └── useStatistics.ts        # Lógica de cálculo e datasets para Chart.js
@@ -368,12 +493,12 @@ equilibra-que-da-ifrn/
 │   └── default.vue             # Layout principal (AppBar, Navigation Drawer, Footer)
 │
 ├── plugins/
-│   ├── vuetify.ts              # Inicialização do Vuetify 3 com tema customizado
+│   ├── vuetify.ts              # Vuetify 3 com @mdi/js (tree-shaking de ícones)
 │   ├── pinia.ts                # Inicialização do Pinia com persistedstate
 │   └── chartjs.client.ts       # Registro dos componentes do Chart.js (client-only)
 │
 ├── public/
-│   └── assets/images/          # Logos e imagens estáticas
+│   └── assets/images/          # Logos e imagens (preferencialmente WebP)
 │
 └── scripts/
     └── release.sh              # Automação de releases e geração de CHANGELOG

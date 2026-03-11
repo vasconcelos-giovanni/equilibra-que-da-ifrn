@@ -1,10 +1,42 @@
-import '@mdi/font/css/materialdesignicons.css'
+// @mdi/font removido — usamos @mdi/js com aliases SVG para tree-shaking completo.
+// Apenas os ícones importados explicitamente em iconAliases entram no bundle.
 import 'vuetify/styles'
 import { pt } from 'vuetify/locale'
 import { createVuetify } from 'vuetify'
+import { aliases, mdi } from 'vuetify/iconsets/mdi-svg'
+import {
+    mdiCalculatorVariant,
+    mdiBookOpenPageVariant,
+    mdiAtom,
+    mdiFlask,
+    mdiDna,
+    mdiCastle,
+    mdiEarth,
+    mdiAccountGroup,
+    mdiHeadLightbulb
+} from '@mdi/js'
 
 export default defineNuxtPlugin(app => {
     const vuetify = createVuetify({
+        icons: {
+            defaultSet: 'mdi',
+            aliases: {
+                ...aliases,
+                // Matérias
+                calculatorVariant: mdiCalculatorVariant,
+                bookOpenPageVariant: mdiBookOpenPageVariant,
+                atom: mdiAtom,
+                flask: mdiFlask,
+                dna: mdiDna,
+                castle: mdiCastle,
+                earth: mdiEarth,
+                accountGroup: mdiAccountGroup,
+                headLightbulb: mdiHeadLightbulb,
+            },
+            sets: { mdi },
+            // Mapa de ícones individuais para carregamento sob demanda via defineAsyncComponent
+            // Os componentes acessam via `mdiXxx` importado diretamente do @mdi/js
+        },
         locale: {
             locale: 'pt',
             messages: { pt },

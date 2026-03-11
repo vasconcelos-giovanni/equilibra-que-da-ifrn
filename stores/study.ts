@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { Session, SessionForm, Goal } from '~/types'
+import { LocalStorageSchema } from '~/types'
 
 export const useStudyStore = defineStore('study', () => {
     const sessions = ref<Session[]>([])
@@ -64,5 +65,23 @@ export const useStudyStore = defineStore('study', () => {
     persist: {
         storage: localStorage,
         key: 'enem-tracker-data',
+        // Desserialização com validação Zod: dados corrompidos são descartados
+        // silenciosamente e substituídos pelo estado padrão, evitando erros em
+        // runtime e Layout Shift causado por re-renders após falha de hidratação.
+        serializer: {
+            serialize: JSON.stringify,
+            deserialize: (raw: string) => {
+                try {
+                    const parsed = JSON.parse(raw)
+                    const result = LocalStorageSchema.safeParse(parsed)
+                    if (result.success) return result.data
+                    console.warn('[study store] Dados do localStorage inválidos, usando estado padrão.', result.error.flatten())
+                    return LocalStorageSchema.parse({})
+                }
+                catch {
+                    return LocalStorageSchema.parse({})
+                }
+            },
+        },
     },
 })

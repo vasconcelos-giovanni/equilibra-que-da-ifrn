@@ -1,4 +1,15 @@
 import { z } from 'zod'
+import {
+    mdiCalculatorVariant,
+    mdiBookOpenPageVariant,
+    mdiAtom,
+    mdiFlask,
+    mdiDna,
+    mdiCastle,
+    mdiEarth,
+    mdiAccountGroup,
+    mdiHeadLightbulb,
+} from '@mdi/js'
 
 export const Materia = z.enum([
     'Matemática',
@@ -86,13 +97,26 @@ export const CORES_MOTIVOS: Record<MotivoErro, string> = {
 }
 
 export const ICONES_MATERIAS: Record<Materia, string> = {
-    'Matemática': 'mdi-calculator-variant',
-    'Linguagens': 'mdi-book-open-page-variant',
-    'Física': 'mdi-atom',
-    'Química': 'mdi-flask',
-    'Biologia': 'mdi-dna',
-    'História': 'mdi-castle',
-    'Geografia': 'mdi-earth',
-    'Sociologia': 'mdi-account-group',
-    'Filosofia': 'mdi-head-lightbulb',
+    'Matemática': mdiCalculatorVariant,
+    'Linguagens': mdiBookOpenPageVariant,
+    'Física': mdiAtom,
+    'Química': mdiFlask,
+    'Biologia': mdiDna,
+    'História': mdiCastle,
+    'Geografia': mdiEarth,
+    'Sociologia': mdiAccountGroup,
+    'Filosofia': mdiHeadLightbulb,
 }
+
+// ---------------------------------------------------------------------------
+// Schema de validação do localStorage
+// ---------------------------------------------------------------------------
+// Protege contra dados corrompidos, versões antigas ou manipulação manual.
+// Usado na hidratação do Pinia para nunca quebrar a aplicação.
+
+export const LocalStorageSchema = z.object({
+    sessions: z.array(SessionSchema).default([]),
+    goal: GoalSchema.default({ dailyTarget: 30, weeklyTarget: 150 }),
+})
+
+export type LocalStorageData = z.infer<typeof LocalStorageSchema>

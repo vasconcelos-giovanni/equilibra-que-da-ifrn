@@ -16,7 +16,7 @@
         "lint": "nuxt typecheck"
     },
     "dependencies": {
-        "@mdi/font": "^7.4.47",
+        "@mdi/js": "^7.4.47",
         "chart.js": "^4.4.7",
         "nuxt": "^3.14.159",
         "pinia": "^2.2.8",

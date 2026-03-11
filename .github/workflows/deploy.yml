@@ -1,0 +1,91 @@
+# =============================================================================
+# Deploy para o Vercel — disparado apenas em Tags de Release
+# =============================================================================
+#
+# O deploy só acontece quando uma tag no formato v* é criada (ex: v1.2.0).
+# Pushes diretos para main/feature branches NÃO consomem Build Minutes.
+#
+# Segredos necessários no repositório (Settings → Secrets → Actions):
+#   VERCEL_TOKEN       — Token da conta Vercel (Account Settings → Tokens)
+#   VERCEL_ORG_ID      — ID da organização Vercel (.vercel/project.json → orgId)
+#   VERCEL_PROJECT_ID  — ID do projeto Vercel  (.vercel/project.json → projectId)
+#
+# Como obter VERCEL_ORG_ID e VERCEL_PROJECT_ID:
+#   npx vercel link   # autentica e cria o arquivo .vercel/project.json localmente
+# =============================================================================
+
+name: Deploy — Release Tag
+
+on:
+  push:
+    tags:
+      - 'v*'   # dispara para v1.0.0, v1.1.0-beta.1, etc.
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false   # nunca cancela um deploy em andamento
+
+jobs:
+  deploy:
+    name: Build & Deploy (Vercel)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # ------------------------------------------------------------------
+      # 1. Checkout do código na tag exata
+      # ------------------------------------------------------------------
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # histórico completo para o CHANGELOG
+
+      # ------------------------------------------------------------------
+      # 2. Configura Node.js com cache de dependências npm
+      # ------------------------------------------------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.tool-versions'
+          cache: 'npm'
+
+      # ------------------------------------------------------------------
+      # 3. Instala dependências (ci garante reprodutibilidade exata)
+      # ------------------------------------------------------------------
+      - name: Install dependencies
+        run: npm ci
+
+      # ------------------------------------------------------------------
+      # 4. Geração estática via Nitro (equivalente a npm run generate)
+      # ------------------------------------------------------------------
+      - name: Generate static build
+        run: npm run generate
+
+      # ------------------------------------------------------------------
+      # 5. Deploy para o Vercel como Produção
+      # ------------------------------------------------------------------
+      - name: Deploy to Vercel (Production)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: .
+          alias-domains: |
+            equilibra-que-da.vercel.app
+
+      # ------------------------------------------------------------------
+      # 6. Resumo no GitHub para rastreabilidade
+      # ------------------------------------------------------------------
+      - name: Summary
+        run: |
+          TAG="${{ github.ref_name }}"
+          echo "## 🚀 Deploy concluído" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Campo | Valor |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Tag** | \`${TAG}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Trigger** | Push de tag |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Ambiente** | Production |" >> $GITHUB_STEP_SUMMARY
