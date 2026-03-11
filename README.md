@@ -102,67 +102,111 @@ export default defineEventHandler(async (event) => {
 
 ### Tipos e Validação (Zod)
 
-Todos os contratos de dados são definidos em [`types/index.ts`](types/index.ts) com [Zod](https://zod.dev/). O schema `SessionSchema` é a fonte única de verdade para uma sessão de estudo:
+Todos os contratos de dados são definidos em [`types/index.ts`](types/index.ts) com [Zod](https://zod.dev/). A principal inovação é a **Lógica de Erro Zero**, implementada via `.superRefine()` no `SessionSchema`:
 
 ```ts
 export const SessionSchema = z.object({
     id:                  z.string().uuid(),
     date:                z.string().min(1),
-    subject:             Materia,           // enum validado
+    subject:             Materia,
     totalQuestions:      z.number().int().min(1),
     wrongQuestions:      z.number().int().min(0),
     correctQuestions:    z.number().int().min(0),
     primaryErrorReason:  MotivoErro.nullable(), // Suporta Erro Zero
 }).superRefine((data, ctx) => {
-    // Lógica 'Erro Zero': motivo deve ser null se não houver falhas
+    // Se houver erros, o motivo é obrigatório
     if (data.wrongQuestions > 0 && data.primaryErrorReason === null) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Se houver erros, selecione o motivo.', path: ['primaryErrorReason'] })
     }
+    // Se não houver erros, o motivo deve ser nulo
     if (data.wrongQuestions === 0 && data.primaryErrorReason !== null) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Sessões sem erros não devem ter motivo.', path: ['primaryErrorReason'] })
     }
 })
 ```
 
+---
+
 ### Portabilidade e Backup
 
-Como o estado reside exclusivamente no navegador do aluno, a aplicação implementa um sistema de **Backup e Restauração** via arquivo JSON.
+Como o estado reside exclusivamente no navegador do aluno, a aplicação implementa um sistema de **Backup e Restauração** via arquivo JSON, garantindo a portabilidade dos dados entre dispositivos.
 
-- **Exportação (`exportData`):** Gera um arquivo `.json` contendo as sessões e metas, incluindo um timestamp `exportedAt`.
-- **Importação (`importData`):** Lê o arquivo e utiliza o `LocalStorageSchema.safeParse` para validar a integridade dos dados antes da persistência.
-- **Segurança de Dados:** O `superRefine` garante que dados importados manualmente respeitem as regras de negócio (ex: total de erros vs total de questões).
+- **Exportação (`exportData`):** A store Pinia gera um arquivo `.json` contendo as sessões e metas, incluindo um timestamp `exportedAt`.
+- **Importação (`importData`):** Valida a integridade do arquivo utilizando `LocalStorageSchema.safeParse` antes de persistir no `localStorage`.
+- **Segurança e Integridade:** O uso do Zod garante que dados importados respeitem todas as regras de negócio (ex: total de acertos deve ser coerente com o total de questões).
 
 ### Analytics (Estatísticas)
 
-O composable [`composables/useStatistics.ts`](composables/useStatistics.ts) processa os dados para visualização. Uma mudança crítica foi implementada:
+O composable [`composables/useStatistics.ts`](composables/useStatistics.ts) processa os dados para visualização. Para manter a relevância pedagógica, os gráficos de **"Motivos de Erro"** filtram automaticamente entradas onde `primaryErrorReason` é nulo, focando apenas nos pontos de melhoria real.
 
-- **Estatísticas de Erro:** Gráficos como "Por que Errei?" agora ignoram sessões onde `wrongQuestions === 0` ou `primaryErrorReason === null`. Isso evita poluir os indicadores pedagógicos com dados irrelevantes e foca nos pontos de melhoria do estudante.
+### Onboarding Interativo
 
-### Onboarding e Retenção
+A primeira experiência do usuário é guiada pelo composable [`composables/useOnboarding.ts`](composables/useOnboarding.ts), que utiliza a biblioteca **driver.js**.
 
-O composable [`composables/useOnboarding.ts`](composables/useOnboarding.ts) implementa um tour guiado de boas-vindas utilizando a biblioteca [driver.js](https://driverjs.com/).
+- **Persistência:** O status do tour é controlado pela chave `equilibra-onboarding-completo` no `localStorage`.
+- **Design:** O tour possui estilização customizada (`.equilibra-popover`) para o tema **enemDark**, com background em tom *surface* (`#434343`) e botões na cor *primary* do IFRN.
+- **Tour Manual:** O usuário pode reiniciar o tutorial a qualquer momento através do modal de Configurações.
 
-**Funcionamento:**
+---
 
-- Na primeira visita, o tour é iniciado automaticamente após 600 ms (aguarda a renderização completa da UI).
-- O controle de exibição é feito pela chave **`equilibra-onboarding-completo`** no `localStorage`. Se a chave não existir, o tour é iniciado; ao concluir ou pular, a chave é gravada com o valor `'true'`.
-- O tour cobre quatro passos: apresentação do aplicativo, aviso de privacidade dos dados (popover centralizado, sem elemento de destaque), item **Registrar** (`#nav-registrar`) e item **Configurações** (`#nav-configuracoes`) — com ênfase na funcionalidade de backup.
+## 🔖 Versionamento e Release
 
-**Re-execução manual:**
+### Automação com `release.sh`
 
-O usuário pode rever o tour a qualquer momento pelo botão **"Ver tutorial novamente"** no modal de Configurações, que limpa a chave do `localStorage` e reinicia o fluxo:
+Para manter a consistência do projeto, utilizamos o script [`scripts/release.sh`](scripts/release.sh), que automatiza o ciclo de vida de novas versões:
 
-```ts
-// layouts/default.vue
-function reiniciarTour() {
-  dialogConfiguracoes.value = false
-  nextTick(() => iniciarTour({ openDrawer: () => { drawer.value = true } }))
-}
+1. **Bump de Versão:** Atualiza o versionamento no `package.json` seguindo o padrão SemVer.
+2. **Registro:** Atualiza o `CHANGELOG.md` com as mudanças recentes.
+3. **Git Tag:** Cria uma tag anotada localmente.
+4. **Deploy:** Ao realizar o push da tag (`git push --tags`), o **GitHub Actions** dispara automaticamente o build e deploy para produção no branch `main`.
+
+---
+
+## 🗂️ Estrutura do Projeto
+
 ```
-
-**Personalização visual:**
-
-O tour usa a classe CSS customizada `equilibra-popover` (definida em `app.vue`) para aplicar as cores do tema `enemDark` — background `#434343`, texto `#f3f3f3` e botões com a cor primary `#356854`.
+equilibra-que-da-ifrn/
+├── app.vue                     # Entrada da aplicação Vue e Estilos do Driver.js
+├── nuxt.config.ts              # Configuração do Nuxt 3 / Nitro (preset: static)
+├── vercel.json                 # Headers de cache agressivo para o Edge Network
+├── package.json
+├── tsconfig.json
+├── .tool-versions              # Versão do Node.js (asdf/mise)
+│
+├── .github/
+│   └── workflows/
+│       └── deploy.yml          # CI/CD: deploy apenas em tags de release
+│
+├── types/
+│   └── index.ts                # Schemas Zod com Lógica de Erro Zero
+│
+├── stores/
+│   └── study.ts                # Pinia store com exportData/importData
+│
+├── composables/
+│   ├── useStatistics.ts        # Lógica de cálculo (filtros de relevância)
+│   └── useOnboarding.ts        # Gerenciamento do Tour de Boas-vindas
+│
+├── pages/
+│   ├── index.vue               # Dashboard de desempenho
+│   ├── registrar.vue           # Registro/edição de sessão
+│   ├── historico.vue           # Histórico de registros
+│   └── ajuda-backup.vue        # Guia detalhado de backup
+│
+├── layouts/
+│   └── default.vue             # Layout com Toolbar e Navigation Drawer
+│
+├── plugins/
+│   ├── vuetify.ts              # Vuetify 3 com @mdi/js (tree-shaking de ícones)
+│   ├── pinia.ts                # Inicialização do Pinia com persistedstate
+│   └── chartjs.client.ts       # Registro dos componentes do Chart.js (client-only)
+│
+├── public/
+│   └── assets/images/          # Logos e imagens (preferencialmente WebP)
+│
+└── scripts/
+    └── release.sh              # Automação de releases SemVer
+```
 
 ---
 
