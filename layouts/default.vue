@@ -11,6 +11,7 @@
       </v-toolbar-title>
 
       <template #append>
+        <SyncButton v-if="syncState.isConnected" />
         <v-btn
           :icon="mdiHelpCircleOutline"
           variant="text"

@@ -112,19 +112,10 @@
 
           <v-row dense class="mb-4">
             <!-- Sincronizar agora -->
-            <v-col cols="12" md="6">
-              <v-btn
-                block
-                color="primary"
-                variant="elevated"
-                :prepend-icon="mdiCloudSync"
-                :loading="syncState.isSyncing"
-                @click="handleSyncNow"
-              >
-                Sincronizar Agora
-              </v-btn>
+            <v-col cols="12" md="6" class="d-flex align-center">
+              <SyncButton block />
             </v-col>
-            <!-- Desconectar -->
+            
             <v-col cols="12" md="6">
               <v-btn
                 block
@@ -151,16 +142,7 @@
           {{ syncState.error }}
         </v-alert>
 
-        <v-alert
-          v-if="syncSuccessMessage"
-          type="success"
-          variant="tonal"
-          class="mt-2"
-          closable
-          @click:close="syncSuccessMessage = ''"
-        >
-          {{ syncSuccessMessage }}
-        </v-alert>
+
       </v-card-text>
     </v-card>
 
@@ -330,13 +312,12 @@ import { useDisplay } from 'vuetify'
 
 // ─── Store & composables ─────────────────────────────────────────────────────
 const store = useStudyStore()
-const { syncState, autoSync, connect, disconnect, uploadData, downloadAndMerge } = useSync()
+const { syncState, autoSync, connect, disconnect } = useSync()
 const { iniciarTour } = useOnboarding()
 const { smAndDown } = useDisplay()
 
 // ─── Sync ────────────────────────────────────────────────────────────────────
 const userAddressInput = ref('')
-const syncSuccessMessage = ref('')
 
 const providerLabel = computed(() => {
   const map: Record<string, string> = {
@@ -365,21 +346,6 @@ async function handleConnect() {
 
 function handleDisconnect() {
   disconnect()
-}
-
-async function handleSyncNow() {
-  syncSuccessMessage.value = ''
-  const merged = await downloadAndMerge({ sessions: store.sessions, goal: store.goal })
-  if (merged) {
-    store.sessions = merged.sessions
-    store.goal = merged.goal
-  }
-  if (!syncState.error) {
-    await uploadData({ sessions: store.sessions, goal: store.goal })
-  }
-  if (!syncState.error) {
-    syncSuccessMessage.value = `Sincronizado em ${formatSyncDate(syncState.lastSyncAt ?? new Date().toISOString())}`
-  }
 }
 
 // ─── Metas ───────────────────────────────────────────────────────────────────

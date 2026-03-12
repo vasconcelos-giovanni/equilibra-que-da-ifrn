@@ -7,6 +7,21 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-03-12
+
+### Added
+
+- **Componente `SyncButton`:** Novo componente `components/SyncButton.vue` que encapsula o ciclo completo de sincronização manual (download → merge → upload) com feedback visual via `v-tooltip` e `v-snackbar` de sucesso.
+- **Toolbar Sync:** O `SyncButton` é exibido na `v-app-bar` quando o usuário está conectado ao Google Drive, permitindo sincronização rápida sem navegar para Configurações.
+
+### Changed
+
+- **`pages/configuracoes.vue`:** O botão "Sincronizar Agora" foi substituído pelo componente `<SyncButton />`. Removidos `handleSyncNow`, `syncSuccessMessage`, e as importações de `uploadData`/`downloadAndMerge` que ficaram órfãs.
+
+### Refactor
+
+- **Lógica de sync manual centralizada** no componente dedicado, eliminando duplicação entre o layout e a página de configurações.
+
 ## [1.3.0] - 2026-03-11
 
 ### Added
