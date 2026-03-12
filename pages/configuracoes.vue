@@ -14,7 +14,7 @@
     <v-card class="mb-6">
       <v-card-title class="d-flex align-center pt-5 px-6 flex-wrap ga-2">
         <v-icon class="mr-2" color="primary" :icon="mdiCloudSync" />
-        Sincronização Cloud
+        Sincronização com a nuvem
         <v-spacer />
         <!-- Status badge -->
         <v-chip
@@ -43,7 +43,7 @@
           :icon="mdiCloudCheckOutline"
         >
           <div class="text-body-2">
-            <strong>Provedor:</strong>
+            <strong>Conectado a:</strong>
             {{ providerLabel }}
           </div>
           <div v-if="syncState.userAddress" class="text-body-2">
@@ -115,7 +115,7 @@
             <v-col cols="12" md="6" class="d-flex align-center">
               <SyncButton block />
             </v-col>
-            
+
             <v-col cols="12" md="6">
               <v-btn
                 block
